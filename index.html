@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elden Ring — Silah Challenge Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: #7a6030;
+    --blood: #8b1a1a;
+    --blood-light: #c0392b;
+    --ash: #2a2520;
+    --ash-dark: #1a1612;
+    --ash-mid: #3d3730;
+    --parchment: #d4c5a0;
+    --parchment-dim: #9a8b6a;
+    --ember: #e07020;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--ash-dark);
+    color: var(--parchment);
+    font-family: 'EB Garamond', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(ellipse at 20% 20%, rgba(201,168,76,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,26,26,0.06) 0%, transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23120f0b'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%231a1612' opacity='0.5'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 60px;
+    position: relative;
+  }
+
+  .rune-decoration {
+    font-size: 28px;
+    color: var(--gold-dim);
+    letter-spacing: 20px;
+    display: block;
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+
+  h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(22px, 5vw, 38px);
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(201,168,76,0.3), 0 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 3px;
+    line-height: 1.3;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--parchment-dim);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 24px auto;
+    max-width: 400px;
+  }
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .divider-diamond {
+    width: 8px; height: 8px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    box-shadow: 0 0 8px rgba(201,168,76,0.5);
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    background: linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.03));
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 4px;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 50px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stats-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .stat-item { text-align: center; }
+  .stat-number {
+    font-family: 'Cinzel', serif;
+    font-size: 32px;
+    color: var(--gold);
+    display: block;
+    text-shadow: 0 0 20px rgba(201,168,76,0.4);
+  }
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--parchment-dim);
+    text-transform: uppercase;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, var(--gold-dim), transparent);
+  }
+
+  /* Progress ring */
+  .progress-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 50px;
+  }
+
+  .progress-ring-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+
+  .progress-ring-wrap svg {
+    transform: rotate(-90deg);
+  }
+
+  .progress-ring-bg {
+    fill: none;
+    stroke: rgba(201,168,76,0.1);
+    stroke-width: 6;
+  }
+  .progress-ring-fill {
+    fill: none;
+    stroke: url(#goldGrad);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .progress-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .progress-pct {
+    font-family: 'Cinzel', serif;
+    font-size: 28px;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(201,168,76,0.5);
+    line-height: 1;
+  }
+  .progress-sublabel {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--parchment-dim);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Section titles */
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold-dim), transparent);
+  }
+
+  /* Weapon grid */
+  .weapons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .weapon-card {
+    background: var(--ash);
+    border: 1px solid rgba(201,168,76,0.12);
+    border-radius: 3px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+  .weapon-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--gold-dim);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .weapon-card:hover {
+    border-color: rgba(201,168,76,0.3);
+    background: var(--ash-mid);
+    transform: translateX(2px);
+  }
+  .weapon-card:hover::before { opacity: 1; }
+
+  .weapon-card.completed {
+    border-color: rgba(201,168,76,0.4);
+    background: linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.03));
+  }
+  .weapon-card.completed::before {
+    opacity: 1;
+    background: var(--gold);
+  }
+
+  .weapon-card.in-progress {
+    border-color: rgba(224,112,32,0.4);
+    background: linear-gradient(135deg, rgba(224,112,32,0.06), rgba(224,112,32,0.02));
+  }
+  .weapon-card.in-progress::before {
+    opacity: 1;
+    background: var(--ember);
+  }
+
+  .weapon-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    filter: grayscale(0.3);
+    transition: filter 0.25s;
+  }
+  .weapon-card:hover .weapon-icon,
+  .weapon-card.completed .weapon-icon { filter: none; }
+
+  .weapon-info { flex: 1; min-width: 0; }
+  .weapon-name {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--parchment);
+    display: block;
+    margin-bottom: 3px;
+    transition: color 0.25s;
+  }
+  .weapon-card.completed .weapon-name { color: var(--gold-light); }
+  .weapon-card.in-progress .weapon-name { color: #e8a860; }
+
+  .weapon-type {
+    font-size: 11px;
+    color: var(--parchment-dim);
+    letter-spacing: 1px;
+    font-style: italic;
+  }
+
+  .weapon-status {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-badge {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+  .badge-done {
+    color: var(--gold);
+    border-color: rgba(201,168,76,0.4);
+    background: rgba(201,168,76,0.1);
+  }
+  .badge-active {
+    color: var(--ember);
+    border-color: rgba(224,112,32,0.4);
+    background: rgba(224,112,32,0.1);
+    animation: pulse-ember 2s infinite;
+  }
+  .badge-todo {
+    color: var(--parchment-dim);
+    border-color: rgba(154,139,106,0.2);
+    background: transparent;
+  }
+
+  @keyframes pulse-ember {
+    0%, 100% { box-shadow: 0 0 4px rgba(224,112,32,0.2); }
+    50% { box-shadow: 0 0 10px rgba(224,112,32,0.5); }
+  }
+
+  .checkmark {
+    width: 18px; height: 18px;
+    border: 1px solid;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    transition: all 0.25s;
+    flex-shrink: 0;
+  }
+  .checkmark.done {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.15);
+    color: var(--gold);
+  }
+  .checkmark.active {
+    border-color: var(--ember);
+    color: var(--ember);
+    background: rgba(224,112,32,0.1);
+  }
+  .checkmark.todo {
+    border-color: rgba(154,139,106,0.3);
+    color: transparent;
+  }
+
+  /* Notes section */
+  .notes-area {
+    background: var(--ash);
+    border: 1px solid rgba(201,168,76,0.12);
+    border-radius: 3px;
+    padding: 20px;
+    margin-top: 8px;
+  }
+  .notes-area textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--parchment);
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    line-height: 1.6;
+    caret-color: var(--gold);
+  }
+  .notes-area textarea::placeholder { color: var(--parchment-dim); opacity: 0.5; font-style: italic; }
+
+  /* Rules box */
+  .rules-box {
+    background: linear-gradient(135deg, rgba(139,26,26,0.08), rgba(139,26,26,0.03));
+    border: 1px solid rgba(139,26,26,0.25);
+    border-radius: 3px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+    position: relative;
+  }
+  .rules-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139,26,26,0.6), transparent);
+  }
+  .rules-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #c06060;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .rules-text {
+    font-size: 14px;
+    color: var(--parchment-dim);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* Tooltip on click */
+  .cycle-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--parchment-dim);
+    opacity: 0.5;
+    margin-top: 8px;
+    font-style: italic;
+    letter-spacing: 1px;
+  }
+
+  /* Smooth fade-in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .weapon-card { animation: fadeUp 0.4s ease both; }
+  .weapon-card:nth-child(1) { animation-delay: 0.05s; }
+  .weapon-card:nth-child(2) { animation-delay: 0.1s; }
+  .weapon-card:nth-child(3) { animation-delay: 0.15s; }
+  .weapon-card:nth-child(4) { animation-delay: 0.2s; }
+  .weapon-card:nth-child(5) { animation-delay: 0.25s; }
+  .weapon-card:nth-child(6) { animation-delay: 0.3s; }
+  .weapon-card:nth-child(7) { animation-delay: 0.35s; }
+  .weapon-card:nth-child(8) { animation-delay: 0.4s; }
+  .weapon-card:nth-child(9) { animation-delay: 0.45s; }
+  .weapon-card:nth-child(10) { animation-delay: 0.5s; }
+  .weapon-card:nth-child(11) { animation-delay: 0.55s; }
+  .weapon-card:nth-child(12) { animation-delay: 0.6s; }
+  .weapon-card:nth-child(13) { animation-delay: 0.65s; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <span class="rune-decoration">ᚠ ᚢ ᚦ ᚨ ᚱ</span>
+    <h1>Silah Challenge<br>Tracker</h1>
+    <p class="subtitle">Elden Ring — All Weapon Types</p>
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-diamond"></div>
+      <div class="divider-line"></div>
+    </div>
+  </header>
+
+  <div class="rules-box">
+    <div class="rules-title">⚔ Challenge Kuralları</div>
+    <div class="rules-text">
+      Her oyunu o silah türü ile bitirmek zorundasın. Büyü, kalkan ve diğer ekipmanlar kullanılabilir — 
+      ama boss öldürme ana silahla olmalı. Her silah türü için ayrı bir New Game.
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-number" id="stat-done">0</span>
+      <span class="stat-label">Tamamlandı</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number" id="stat-active">0</span>
+      <span class="stat-label">Devam Ediyor</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number" id="stat-total">0</span>
+      <span class="stat-label">Toplam Tür</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number" id="stat-pct">0%</span>
+      <span class="stat-label">İlerleme</span>
+    </div>
+  </div>
+
+  <div class="progress-container">
+    <div class="progress-ring-wrap">
+      <svg width="160" height="160" viewBox="0 0 160 160">
+        <defs>
+          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#7a6030"/>
+            <stop offset="100%" style="stop-color:#e8c97a"/>
+          </linearGradient>
+        </defs>
+        <circle class="progress-ring-bg" cx="80" cy="80" r="70"/>
+        <circle class="progress-ring-fill" id="progressRing" cx="80" cy="80" r="70"
+          stroke-dasharray="439.8"
+          stroke-dashoffset="439.8"/>
+      </svg>
+      <div class="progress-text">
+        <span class="progress-pct" id="progressPct">0%</span>
+        <span class="progress-sublabel">Tamamlandı</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Silah Türleri</div>
+  <p class="cycle-hint">Kartlara tıklayarak durumu değiştirebilirsin: Yapılacak → Devam Ediyor → Tamamlandı</p>
+  <br>
+
+  <div class="weapons-grid" id="weaponsGrid"></div>
+
+  <div class="section-title">Notlar</div>
+  <div class="notes-area">
+    <textarea id="notesField" placeholder="Build notları, stratejiler, zor bosslar..."></textarea>
+  </div>
+
+</div>
+
+<script>
+const WEAPONS = [
+  { id: 'dagger',        icon: '🗡️',  name: 'Hançer',           type: 'Dagger' },
+  { id: 'straight',      icon: '⚔️',  name: 'Düz Kılıç',        type: 'Straight Sword' },
+  { id: 'greatsword',    icon: '🗡️',  name: 'Büyük Kılıç',      type: 'Greatsword' },
+  { id: 'colossal',      icon: '🪓',  name: 'Dev Kılıç',         type: 'Colossal Sword' },
+  { id: 'thrusting',     icon: '🤺',  name: 'Rapier',            type: 'Thrusting Sword' },
+  { id: 'heavythrusting',icon: '⚔️',  name: 'Ağır İtici Kılıç', type: 'Heavy Thrusting Sword' },
+  { id: 'curvedsword',   icon: '🌙',  name: 'Eğri Kılıç',       type: 'Curved Sword' },
+  { id: 'curvedgreatsword',icon:'🌙', name: 'Büyük Eğri Kılıç', type: 'Curved Greatsword' },
+  { id: 'katana',        icon: '⛩️',  name: 'Katana',            type: 'Katana' },
+  { id: 'twinblade',     icon: '✖️',  name: 'Çift Bıçak',        type: 'Twinblade' },
+  { id: 'hammer',        icon: '🔨',  name: 'Çekiç',             type: 'Hammer' },
+  { id: 'greathammer',   icon: '🔨',  name: 'Büyük Çekiç',      type: 'Great Hammer' },
+  { id: 'colossalhammer',icon: '⚒️',  name: 'Dev Çekiç',         type: 'Colossal Weapon' },
+  { id: 'flail',         icon: '⛓️',  name: 'Topuzlu Kamçı',    type: 'Flail' },
+  { id: 'axe',           icon: '🪓',  name: 'Balta',             type: 'Axe' },
+  { id: 'greataxe',      icon: '🪓',  name: 'Büyük Balta',       type: 'Greataxe' },
+  { id: 'spear',         icon: '🔱',  name: 'Mızrak',            type: 'Spear' },
+  { id: 'greatspear',    icon: '🔱',  name: 'Büyük Mızrak',     type: 'Great Spear' },
+  { id: 'halberd',       icon: '⚔️',  name: 'Helberd',           type: 'Halberd' },
+  { id: 'reaper',        icon: '☠️',  name: 'Tırpan',            type: 'Reaper' },
+  { id: 'whip',          icon: '🌿',  name: 'Kırbaç',            type: 'Whip' },
+  { id: 'fist',          icon: '👊',  name: 'Yumruk',            type: 'Fist' },
+  { id: 'claw',          icon: '🦅',  name: 'Pençe',             type: 'Claw' },
+  { id: 'bow',           icon: '🏹',  name: 'Yay',               type: 'Bow' },
+  { id: 'greatbow',      icon: '🏹',  name: 'Büyük Yay',         type: 'Greatbow' },
+  { id: 'crossbow',      icon: '🎯',  name: 'Arbalet',           type: 'Crossbow' },
+  { id: 'ballista',      icon: '🎯',  name: 'Balista',           type: 'Ballista' },
+  { id: 'shield',        icon: '🛡️',  name: 'Büyük Kalkan',     type: 'Greatshield' },
+  { id: 'torch',         icon: '🔥',  name: 'Meşale',            type: 'Torch' },
+];
+
+// Pre-set states based on user's progress
+const INITIAL_STATES = {
+  'hammer': 'completed',
+  'greataxe': 'completed',
+  'straight': 'completed',
+  'greatsword': 'completed',
+  'thrusting': 'completed',
+  'shield': 'active',
+  'bow': 'active',
+};
+
+const STORAGE_KEY = 'er_weapon_challenge_v2';
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch { return null; }
+}
+
+function saveData(states, notes) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ states, notes }));
+  } catch {}
+}
+
+let states = {};
+let notes = '';
+
+function init() {
+  const saved = loadData();
+  if (saved) {
+    states = saved.states || {};
+    notes = saved.notes || '';
+  } else {
+    states = { ...INITIAL_STATES };
+    notes = '';
+  }
+  render();
+  document.getElementById('notesField').value = notes;
+  document.getElementById('notesField').addEventListener('input', e => {
+    notes = e.target.value;
+    saveData(states, notes);
+  });
+}
+
+function cycleState(id) {
+  const cur = states[id] || 'todo';
+  if (cur === 'todo') states[id] = 'active';
+  else if (cur === 'active') states[id] = 'completed';
+  else states[id] = 'todo';
+  saveData(states, notes);
+  render();
+}
+
+function render() {
+  const grid = document.getElementById('weaponsGrid');
+  const total = WEAPONS.length;
+  const done = WEAPONS.filter(w => states[w.id] === 'completed').length;
+  const active = WEAPONS.filter(w => states[w.id] === 'active').length;
+  const pct = Math.round((done / total) * 100);
+
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pct').textContent = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+
+  const circumference = 439.8;
+  const offset = circumference - (pct / 100) * circumference;
+  document.getElementById('progressRing').style.strokeDashoffset = offset;
+
+  grid.innerHTML = WEAPONS.map(w => {
+    const st = states[w.id] || 'todo';
+    let cardClass = st === 'completed' ? 'completed' : st === 'active' ? 'in-progress' : '';
+    let badge = st === 'completed'
+      ? '<span class="status-badge badge-done">Bitti</span>'
+      : st === 'active'
+      ? '<span class="status-badge badge-active">Aktif</span>'
+      : '<span class="status-badge badge-todo">Bekliyor</span>';
+    let check = st === 'completed' ? '✓' : st === 'active' ? '◉' : '';
+    let checkClass = st === 'completed' ? 'done' : st === 'active' ? 'active' : 'todo';
+
+    return `
+      <div class="weapon-card ${cardClass}" onclick="cycleState('${w.id}')">
+        <span class="weapon-icon">${w.icon}</span>
+        <div class="weapon-info">
+          <span class="weapon-name">${w.name}</span>
+          <span class="weapon-type">${w.type}</span>
+        </div>
+        <div class="weapon-status">
+          ${badge}
+          <div class="checkmark ${checkClass}">${check}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>
